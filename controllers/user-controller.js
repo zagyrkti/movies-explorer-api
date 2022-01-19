@@ -1,51 +1,57 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user-model');
-const DuplicateError = require('../errors/duplicate-error');
 const UnauthorizedError = require('../errors/unauthorized-error');
+const NotFoundError = require('../errors/not-found-error');
+const BadRequestError = require('../errors/bad-request-error');
+const ConflictError = require('../errors/conflict-error');
+
 require('dotenv').config();
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 const secretKey = NODE_ENV === 'production' ? JWT_SECRET : 'secret-key';
 
 function getCurrentUser(req, res, next) {
-  const errorData = {
-    400: 'Переданы некорректные данные id',
-    404: 'Пользователь по указанному _id не найден',
-  };
-
   User.findById(req.user._id)
-    .orFail()
+    .orFail(new NotFoundError('Пользователь с текущим id не найден'))
     .then((user) => res.send(user))
-    .catch((error) => next({ error, errorData }));
+    .catch((error) => {
+      if (error.name === 'CastError') {
+        return next(new BadRequestError('Некорректный id'));
+      }
+      return next(error);
+    });
 }
 
 function updateUserData(req, res, next) {
   const userId = req.user._id;
   const { name, email } = req.body;
-  const errorData = {
-    400: 'Переданы некорректные данные при обновлении профиля',
-    404: 'Пользователь с указанным _id не найден',
-  };
 
   User.findByIdAndUpdate(userId, { name, email }, { new: true, runValidators: true })
-    .orFail()
+    .orFail(new NotFoundError('Пользователь с текущим id не найден'))
     .then((user) => res.send(user))
-    .catch((error) => next({ error, errorData }));
+    .catch((error) => {
+      if (error.code === 11000) {
+        return next(new ConflictError('Пользователь с указанным email уже зарегистрирован'));
+      }
+      if (error.name === 'ValidationError') {
+        return next(new BadRequestError('Ошибка валидации данных'));
+      }
+      if (error.name === 'CastError') {
+        return next(new BadRequestError('Некорректный id'));
+      }
+      return next(error);
+    });
 }
 
 function createUser(req, res, next) {
   const { name } = req.body;
   const { email, password } = req.body;
-  const errorData = {
-    400: 'Переданы некорректные данные при создании пользователя',
-    409: 'Пользователь с таким email уже зарегистрирован',
-  };
 
   User.findOne({ email })
     .then((user) => {
       if (user) {
-        throw new DuplicateError();
+        return next(new ConflictError('Пользователь с указанным email уже зарегистрирован'));
       }
       bcrypt.hash(password, 10)
         .then((hash) => User.create({ name, email, password: hash })
@@ -54,21 +60,24 @@ function createUser(req, res, next) {
             delete userObject.password;
             res.send(userObject);
           })
-          .catch((error) => next({ error, errorData })));
+          .catch((error) => {
+            if (error.name === 'ValidationError') {
+              return next(new BadRequestError('Ошибка валидации данных'));
+            }
+            return next(error);
+          }));
+      return next;
     })
-    .catch((error) => next({ error, errorData }));
+    .catch(next);
 }
 
 function login(req, res, next) {
   const { email, password } = req.body;
-  const errorData = {
-    401: 'Неправильные почта или пароль',
-  };
 
   const checkPass = (user) => bcrypt.compare(password, user.password)
     .then((matched) => {
       if (!matched) {
-        throw new UnauthorizedError();
+        return next(new UnauthorizedError('Неправильные почта или пароль'));
       }
       return user;
     });
@@ -76,7 +85,7 @@ function login(req, res, next) {
   User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        throw new UnauthorizedError();
+        return next(new UnauthorizedError('Неправильные почта или пароль'));
       }
       return user;
     })
@@ -85,7 +94,12 @@ function login(req, res, next) {
       const token = jwt.sign({ _id: user._id }, secretKey, { expiresIn: '7d' });
       res.send({ token });
     })
-    .catch((error) => next({ error, errorData }));
+    .catch((error) => {
+      if (error.name === 'ValidationError') {
+        return next(new BadRequestError('Ошибка валидации данных'));
+      }
+      return next(error);
+    });
 }
 
 module.exports = {
