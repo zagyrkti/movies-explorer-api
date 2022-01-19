@@ -33,7 +33,7 @@ function deleteSavedMovie(req, res, next) {
     .then((movie) => {
       const owner = movie.owner._id.toHexString();
       if (currentUserId === owner) {
-        return Movie.findByIdAndRemove(req.params.movieId)
+        return movie.remove()
           .then((deletedMovie) => res.send(deletedMovie));
       }
       return next(new ForbiddenError('Удалить фильм может только владелец'));
