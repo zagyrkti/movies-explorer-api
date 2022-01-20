@@ -52,7 +52,8 @@ function createUser(req, res, next) {
           return next(new ConflictError(errorMessages.emailDuplication));
         }
         return next(error);
-      }));
+      }))
+    .catch((error) => next(error));
 }
 
 function login(req, res, next) {
