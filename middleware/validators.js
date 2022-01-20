@@ -1,6 +1,13 @@
 const { celebrate, Joi, Segments } = require('celebrate');
+const validator = require('validator');
 
-const urlPattern = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&/=]*)/;
+const url = (value, helpers) => {
+  if (validator.isURL(value)) {
+    return value;
+  }
+  return helpers.message('Требуется валидный url');
+};
+
 const passwordPattern = /^[-a-zA-Z0-9()@:%_+.~#?&/=]{3,20}$/;
 
 const movieSignatureValidator = celebrate({
@@ -13,9 +20,9 @@ const movieSignatureValidator = celebrate({
     year: Joi.string().required(),
     duration: Joi.number().required(),
     description: Joi.string().required(),
-    trailerLink: Joi.string().required().pattern(urlPattern),
-    image: Joi.string().required().pattern(urlPattern),
-    thumbnail: Joi.string().required().pattern(urlPattern),
+    trailerLink: Joi.string().required().custom(url),
+    image: Joi.string().required().custom(url),
+    thumbnail: Joi.string().required().custom(url),
   }),
 });
 
