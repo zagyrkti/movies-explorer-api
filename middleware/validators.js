@@ -8,7 +8,7 @@ const url = (value, helpers) => {
   return helpers.message('Требуется валидный url');
 };
 
-const passwordPattern = /^[-a-zA-Z0-9()@:%_+.~#?&/=]{3,20}$/;
+const passwordPattern = /^[-a-zA-Z0-9()!$^*@:%_+.~#?&/=]{3,20}$/;
 
 const movieSignatureValidator = celebrate({
   [Segments.BODY]: Joi.object().keys({
@@ -30,7 +30,7 @@ const loginValidator = celebrate({
   [Segments.BODY]: Joi.object().keys({
     email: Joi.string().required().email(),
     password: Joi.string().required().pattern(passwordPattern)
-      .message('Пароль от 3 до 30 символов. Допустимые символы -a-zA-Z0-9()@:%_+.~#?&/='),
+      .message('Пароль от 3 до 30 символов. Допустимые символы -a-zA-Z0-9()!$^*@:%_+.~#?&/='),
   }),
 });
 
@@ -52,7 +52,7 @@ const signUpValidator = celebrate({
     name: Joi.string().required().min(2).max(30),
     email: Joi.string().required().email(),
     password: Joi.string().required().pattern(passwordPattern)
-      .message('Пароль от 3 до 30 символов. Допустимые символы -a-zA-Z0-9()@:%_+.~#?&/='),
+      .message('Пароль от 3 до 30 символов. Допустимые символы -a-zA-Z0-9()!$^*@:%_+.~#?&/='),
   }),
 });
 
