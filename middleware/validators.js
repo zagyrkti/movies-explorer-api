@@ -20,7 +20,7 @@ const movieSignatureValidator = celebrate({
     year: Joi.string().required(),
     duration: Joi.number().required(),
     description: Joi.string().required(),
-    trailerLink: Joi.string().required().custom(url),
+    trailer: Joi.string().required().custom(url),
     image: Joi.string().required().custom(url),
     thumbnail: Joi.string().required().custom(url),
   }),
