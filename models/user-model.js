@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
-const validator = require('validator');
+const emailPattern = require('../utils/constants');
+
+const validateEmail = (email) => emailPattern.test(email);
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -14,7 +16,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     validate: {
       validator(email) {
-        return validator.isEmail(email);
+        return validateEmail(email);
       },
     },
   },
